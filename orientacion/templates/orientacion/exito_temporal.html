@@ -1,3 +1,6 @@
+{% extends 'orientacion/base.html' %} 
+
+{% block content %}
 <div class="container mt-5">
     <h2>Resultados del Test Vocacional</h2>
     <p class="lead">Estudiante: <strong>{{ estudiante.nombre_completo }}</strong></p>
@@ -24,3 +27,4 @@
     
     <a href="{% url 'registro' %}" class="btn btn-outline-secondary mt-4">Volver al inicio</a>
 </div>
+{% endblock %}
