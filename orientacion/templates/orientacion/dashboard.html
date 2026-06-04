@@ -11,7 +11,7 @@
         <div class="col-md-7">
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0">Mapeo de Habilidades (Gráfico Radial)</h5>
+                    <h5 class="mb-0">Mapeo de Habilidades</h5>
                 </div>
                 <div class="card-body">
                     <canvas id="radarChart" height="300"></canvas>
@@ -100,7 +100,7 @@
                         displayColors: false,
                         callbacks: {
                             label: function(context) {
-                                return context.label + ': ' + context.raw + '%'; // Añade el % al tooltip
+                                return context.label + ': ' + context.raw + '%'; 
                             }
                         }
                     }
@@ -112,7 +112,7 @@
                         },
                         grid: {
                             color: 'rgba(0, 0, 0, 0.08)',
-                            circular: true // Malla circular, mucho más estética que la poligonal
+                            circular: true // Malla circular
                         },
                         pointLabels: {
                             font: {

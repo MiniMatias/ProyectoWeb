@@ -4,9 +4,7 @@ from django.http import JsonResponse
 from django.core.exceptions import ValidationError
 from .models import AreaEspecialidad, Especialidad, Estudiante, Pregunta, RespuestaHabilidad
 
-# ==========================================
-# 1. SISTEMA DE REGISTRO ORIGINAL
-# ==========================================
+# SISTEMA DE REGISTRO ORIGINAL
 
 def registro_estudiante(request):
     areas = AreaEspecialidad.objects.all().order_by('nombre')
@@ -78,9 +76,7 @@ def realizar_test(request):
         'preguntas': preguntas
     })
 
-# ==========================================
-# 2. NUEVO SISTEMA SAAS (DASHBOARD)
-# ==========================================
+# 2. (DASHBOARD)
 
 def acceso_dashboard(request):
     """Actúa como un login falso basado en la cédula."""

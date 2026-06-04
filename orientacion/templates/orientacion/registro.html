@@ -1,69 +1,83 @@
 {% extends 'orientacion/base.html' %}
 
 {% block content %}
-<style>
-    .card { border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .btn-udla { background-color: #941c1f; color: white; } 
-    .btn-udla:hover { background-color: #7a1619; color: white; }
-</style>
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card p-4">
-                <div class="text-center mb-4">
-                    <h2 class="fw-bold">Explora tu Especialidad</h2>
-                    <p class="text-muted">Ingresa tus datos para comenzar el proceso de orientación</p>
+<div class="hero-section text-center shadow-lg rounded-4 mt-2">
+    <div class="position-relative z-1">
+        <i class="fa-solid fa-microchip fa-3x mb-3 text-white opacity-75"></i>
+        <h1 class="display-5 fw-bold mb-2">Sistema de Evaluación Paramétrica</h1>
+        <p class="lead mb-0 opacity-75">Motor algorítmico de inferencia para asignación de especialidades.</p>
+    </div>
+</div>
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-7">
+        <div class="card p-5 shadow-sm border-0 rounded-4">
+            <div class="text-center mb-4">
+                <div class="icon-circle mx-auto mb-3">
+                    <i class="fa-solid fa-compass-drafting fa-xl"></i>
+                </div>
+                <h2 class="fw-bold">Explora tu Especialidad</h2>
+                <p class="text-muted">Ingresa tus datos para iniciar el motor de inferencia vocacional</p>
+            </div>
+
+            {% if error_msg %}
+                <div class="alert alert-danger border-0 shadow-sm rounded-3 d-flex align-items-center" role="alert">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                    <div>{{ error_msg }}</div>
+                </div>
+            {% endif %}
+
+            {% if success_msg %}
+                <div class="alert alert-success border-0 shadow-sm rounded-3 d-flex align-items-center" role="alert">
+                    <i class="fa-solid fa-circle-check me-2"></i>
+                    <div>{{ success_msg }}</div>
+                </div>
+            {% endif %}
+
+            <form method="POST" class="needs-validation">
+                {% csrf_token %}
+                
+                <div class="mb-4">
+                    <label for="cedula_input" class="form-label fw-semibold text-secondary"><i class="fa-regular fa-id-card me-2"></i>Cédula de Identidad</label>
+                    <input type="text" class="form-control bg-light border-0 py-2" id="cedula_input" name="cedula" placeholder="Ej: 1726354471" required>
                 </div>
 
-                {% if error_msg %}
-                    <div class="alert alert-danger d-flex align-items-center" role="alert">
-                        <div><strong>🚨 Error:</strong> {{ error_msg }}</div>
-                    </div>
-                {% endif %}
+                <div class="mb-4">
+                    <label for="nombre_input" class="form-label fw-semibold text-secondary"><i class="fa-regular fa-user me-2"></i>Nombre Completo</label>
+                    <input type="text" class="form-control bg-light border-0 py-2" id="nombre_input" name="nombre_completo" placeholder="Nombre y Apellido" required>
+                </div>
 
-                {% if success_msg %}
-                    <div class="alert alert-success d-flex align-items-center" role="alert">
-                        <div><strong>✅ Éxito:</strong> {{ success_msg }}</div>
-                    </div>
-                {% endif %}
-
-                <form method="POST" class="needs-validation">
-                    {% csrf_token %}
-                    
-                    <div class="mb-3">
-                        <label for="cedula_input" class="form-label fw-bold">Cédula de Identidad</label>
-                        <input type="text" class="form-control" id="cedula_input" name="cedula" placeholder="Ej: 1726354471" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="nombre_input" class="form-label fw-bold">Nombre Completo</label>
-                        <input type="text" class="form-control" id="nombre_input" name="nombre_completo" placeholder="Nombre y Apellido" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="area_select" class="form-label fw-bold">Área Académica</label>
-                        <select class="form-select" id="area_select" name="area" required>
-                            <option value="">-- Seleccione un Área --</option>
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <label for="area_select" class="form-label fw-semibold text-secondary"><i class="fa-solid fa-layer-group me-2"></i>Área Académica</label>
+                        <select class="form-select bg-light border-0 py-2" id="area_select" name="area" required>
+                            <option value="">-- Seleccione --</option>
                             {% for area in areas %}
                                 <option value="{{ area.id }}">{{ area.nombre }}</option>
                             {% endfor %}
                         </select>
                     </div>
 
-                    <div class="mb-4">
-                        <label for="especialidad_select" class="form-label fw-bold">Especialidad Sugerida</label>
-                        <select class="form-select" id="especialidad_select" name="especialidad" required>
-                            <option value="">-- Primero seleccione un Área --</option>
+                    <div class="col-md-6 mb-4">
+                        <label for="especialidad_select" class="form-label fw-semibold text-secondary"><i class="fa-solid fa-graduation-cap me-2"></i>Especialidad Sugerida</label>
+                        <select class="form-select bg-light border-0 py-2" id="especialidad_select" name="especialidad" required>
+                            <option value="">-- Seleccione Área --</option>
                         </select>
                     </div>
+                </div>
 
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-udla btn-lg">Registrar y Continuar</button>
-                    </div>
-                </form>
-            </div>
-            <p class="text-center mt-3 text-muted small">&copy; 2026 Facultad de Ingeniería y Ciencias Aplicadas - Matias Monteros</p>
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        Registrar y Continuar <i class="fa-solid fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+        <div class="text-center mt-4 mb-5">
+            <a href="{% url 'acceso_dashboard' %}" class="text-decoration-none text-secondary fw-semibold">
+                <i class="fa-solid fa-chart-pie me-1"></i> Ya tengo un perfil, ir al Dashboard
+            </a>
         </div>
     </div>
 </div>
@@ -81,7 +95,7 @@
                 fetch(`/ajax/especialidades/?area_id=${areaId}`)
                     .then(response => response.json())
                     .then(data => {
-                        especialidadSelect.innerHTML = '<option value="">-- Seleccione una Especialidad --</option>';
+                        especialidadSelect.innerHTML = '<option value="">-- Seleccione --</option>';
                         data.forEach(esp => {
                             const option = new Option(esp.nombre, esp.id);
                             especialidadSelect.add(option);
@@ -89,7 +103,7 @@
                     })
                     .catch(error => console.error('Error:', error));
             } else {
-                especialidadSelect.innerHTML = '<option value="">-- Primero seleccione un Área --</option>';
+                especialidadSelect.innerHTML = '<option value="">-- Seleccione Área --</option>';
             }
         });
     });
