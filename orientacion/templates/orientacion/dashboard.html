@@ -35,8 +35,32 @@
                     </ul>
                 </div>
             </div>
+
+            <div class="card shadow-sm mt-4 border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fa-solid fa-trophy me-2"></i>Top 3 Especialidades</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for item in top_3 %}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <strong class="text-primary">{{ item.especialidad }}</strong>
+                                <span class="badge bg-success rounded-pill">{{ item.afinidad }}%</span>
+                            </div>
+                            <small class="text-muted"><i class="fa-solid fa-layer-group me-1"></i>{{ item.area }}</small>
+                            <div class="progress mt-2" style="height: 6px;">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ item.afinidad|stringformat:'s' }}%;" aria-valuenow="{{ item.afinidad|stringformat:'s' }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item text-muted">No hay datos suficientes para calcular.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
             
-            <div class="d-grid mt-4">
+            <div class="d-grid mt-4 mb-5">
                 <a href="{% url 'realizar_test' %}" class="btn btn-outline-primary mb-2">Volver a rendir el test</a>
                 <a href="{% url 'registro' %}" class="btn btn-danger">Salir</a>
             </div>
@@ -62,8 +86,8 @@
             canvas.width / 2, canvas.height / 2, 0, 
             canvas.width / 2, canvas.height / 2, canvas.width / 2
         );
-        gradient.addColorStop(0, 'rgba(13, 110, 253, 0.6)');  // Azul intenso en el centro
-        gradient.addColorStop(1, 'rgba(13, 110, 253, 0.05)'); // Transparente hacia los bordes
+        gradient.addColorStop(0, 'rgba(13, 110, 253, 0.6)');  
+        gradient.addColorStop(1, 'rgba(13, 110, 253, 0.05)'); 
 
         new Chart(ctx, {
             type: 'radar',
@@ -79,10 +103,10 @@
                     pointBorderColor: 'rgba(13, 110, 253, 1)',
                     pointBorderWidth: 2,
                     pointRadius: 4,
-                    pointHoverRadius: 7, // El punto crece al pasar el mouse
+                    pointHoverRadius: 7, 
                     pointHoverBackgroundColor: 'rgba(13, 110, 253, 1)',
                     pointHoverBorderColor: '#ffffff',
-                    tension: 0.3 // Curvas de Bezier (orgánico)
+                    tension: 0.3 
                 }]
             },
             options: {
@@ -90,7 +114,7 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        display: false // Ocultamos la leyenda para reducir ruido visual
+                        display: false 
                     },
                     tooltip: {
                         backgroundColor: 'rgba(33, 37, 41, 0.9)',
@@ -108,11 +132,11 @@
                 scales: {
                     r: {
                         angleLines: {
-                            color: 'rgba(0, 0, 0, 0.08)' // Líneas de los ejes más sutiles
+                            color: 'rgba(0, 0, 0, 0.08)' 
                         },
                         grid: {
                             color: 'rgba(0, 0, 0, 0.08)',
-                            circular: true // Malla circular
+                            circular: true 
                         },
                         pointLabels: {
                             font: {
@@ -120,10 +144,10 @@
                                 family: "'Segoe UI', sans-serif",
                                 weight: '500'
                             },
-                            color: '#495057' // Gris oscuro profesional
+                            color: '#495057' 
                         },
                         ticks: {
-                            display: false, // Oculta los números de la malla para mayor limpieza
+                            display: false, 
                             min: 0,
                             max: 100,
                             stepSize: 25

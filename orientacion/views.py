@@ -67,8 +67,6 @@ def realizar_test(request):
                     defaults={'puntaje': int(puntaje)}
                 )
                 
-        # Una vez completado, en lugar de mostrar exito_temporal, 
-        # lo enviamos directamente a su nuevo dashboard analítico.
         return redirect('dashboard')
 
     return render(request, 'orientacion/test.html', {
@@ -101,13 +99,15 @@ def dashboard(request):
     estudiante = Estudiante.objects.get(id=estudiante_id)
     respuestas = RespuestaHabilidad.objects.filter(estudiante=estudiante).select_related('pregunta__habilidad')
     
-    # Si no ha dado el test, lo mandamos a la vista de estado vacío
     if not respuestas.exists():
         return render(request, 'orientacion/dashboard_vacio.html', {'estudiante': estudiante})
         
     # Procesamiento matemático para el Gráfico Radial de Chart.js
     habilidades_data = {}
+    promedios_estudiante = {}
+    
     for r in respuestas:
+        # Para el gráfico radial
         hab_nombre = r.pregunta.habilidad.nombre
         if hab_nombre not in habilidades_data:
             habilidades_data[hab_nombre] = {'suma': 0, 'conteo': 0}
@@ -115,15 +115,47 @@ def dashboard(request):
         porcentaje = (r.puntaje - 1) * 25
         habilidades_data[hab_nombre]['suma'] += porcentaje
         habilidades_data[hab_nombre]['conteo'] += 1
+
+        # Para el motor de inferencia (Top 3) usando IDs
+        hab_id = r.pregunta.habilidad.id
+        if hab_id not in promedios_estudiante:
+            promedios_estudiante[hab_id] = {'suma': 0, 'conteo': 0}
+        promedios_estudiante[hab_id]['suma'] += porcentaje
+        promedios_estudiante[hab_id]['conteo'] += 1
         
     labels = list(habilidades_data.keys())
     data_points = [round(data['suma'] / data['conteo'], 1) for data in habilidades_data.values()]
+    
+    # MOTOR DE INFERENCIA TOP 3 
+    promedios_finales = {h_id: vals['suma']/vals['conteo'] for h_id, vals in promedios_estudiante.items()}
+
+    todas_especialidades = Especialidad.objects.prefetch_related('pesos_habilidades')
+    ranking_especialidades = []
+
+    for esp in todas_especialidades:
+        puntaje_afinidad = 0
+        pesos_totales = 0
+        for ph in esp.pesos_habilidades.all():
+            promedio_alumno = promedios_finales.get(ph.habilidad.id, 0)
+            puntaje_afinidad += promedio_alumno * ph.peso
+            pesos_totales += ph.peso
+        
+        afinidad_final = (puntaje_afinidad / pesos_totales) if pesos_totales > 0 else 0
+        
+        ranking_especialidades.append({
+            'especialidad': esp.nombre,
+            'area': esp.area.nombre,
+            'afinidad': round(afinidad_final, 1)
+        })
+
+    top_3_recomendaciones = sorted(ranking_especialidades, key=lambda x: x['afinidad'], reverse=True)[:3]
     
     contexto = {
         'estudiante': estudiante,
         'respuestas': respuestas,
         'chart_labels': json.dumps(labels), 
-        'chart_data': json.dumps(data_points) 
+        'chart_data': json.dumps(data_points),
+        'top_3': top_3_recomendaciones
     }
     
     return render(request, 'orientacion/dashboard.html', contexto)
