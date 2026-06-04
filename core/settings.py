@@ -3,22 +3,36 @@ import dj_database_url
 from pathlib import Path
 from dotenv import load_dotenv
 
+# Carga variables de entorno locales si existe un archivo .env
 load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-clave-de-emergencia')
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+# PROTOCOLO DE SEGURIDAD
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
-# Application definition
+# 1. DEBUG estricto
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+
+# 2. SECRET_KEY innegociable
+if not DEBUG:
+    # En producción: Si no existe la variable, lanza KeyError y aborta el arranque.
+    SECRET_KEY = os.environ['SECRET_KEY']
+else:
+    # En local: Usa clave de emergencia o la del archivo .env
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-clave-temporal-local')
+
+# 3. ALLOWED_HOSTS dinámico y automatizado
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+
+# APLICACIONES Y MIDDLEWARES
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -62,8 +76,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
+# BASE DE DATOS
+
 
 DATABASES = {
     'default': dj_database_url.config(
@@ -73,8 +87,8 @@ DATABASES = {
 }
 
 
-# Password validation
-# https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
+# VALIDACIÓN DE CONTRASEÑAS
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -92,20 +106,19 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/6.0/topics/i18n/
+#  REGIONALIZACIÓN E IDIOMA
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'es-ec'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Guayaquil'
 
 USE_I18N = True
 
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.0/howto/static-files/
+# ARCHIVOS ESTÁTICOS
+
 
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
