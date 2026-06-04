@@ -1,0 +1,137 @@
+{% extends 'orientacion/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Dashboard Analítico</h2>
+        <span class="badge bg-primary fs-6">{{ estudiante.nombre_completo }}</span>
+    </div>
+
+    <div class="row">
+        <div class="col-md-7">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Mapeo de Habilidades (Gráfico Radial)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="radarChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Tus Respuestas</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for respuesta in respuestas %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <small>{{ respuesta.pregunta.habilidad.nombre }}</small>
+                            <span class="badge bg-secondary rounded-pill">Puntuación: {{ respuesta.puntaje }}/5</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="d-grid mt-4">
+                <a href="{% url 'realizar_test' %}" class="btn btn-outline-primary mb-2">Volver a rendir el test</a>
+                <a href="{% url 'registro' %}" class="btn btn-danger">Salir</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const canvas = document.getElementById('radarChart');
+        const ctx = canvas.getContext('2d');
+        
+        // Recibimos los datos serializados desde Django
+        const rawLabels = '{{ chart_labels|safe }}';
+        const rawData = '{{ chart_data|safe }}';
+        
+        const chartLabels = JSON.parse(rawLabels);
+        const chartData = JSON.parse(rawData);
+
+        // Creación de un gradiente dinámico para el fondo del gráfico
+        const gradient = ctx.createRadialGradient(
+            canvas.width / 2, canvas.height / 2, 0, 
+            canvas.width / 2, canvas.height / 2, canvas.width / 2
+        );
+        gradient.addColorStop(0, 'rgba(13, 110, 253, 0.6)');  // Azul intenso en el centro
+        gradient.addColorStop(1, 'rgba(13, 110, 253, 0.05)'); // Transparente hacia los bordes
+
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Nivel de Afinidad',
+                    data: chartData,
+                    backgroundColor: gradient,
+                    borderColor: 'rgba(13, 110, 253, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: 'rgba(13, 110, 253, 1)',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 7, // El punto crece al pasar el mouse
+                    pointHoverBackgroundColor: 'rgba(13, 110, 253, 1)',
+                    pointHoverBorderColor: '#ffffff',
+                    tension: 0.3 // Curvas de Bezier (orgánico)
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false // Ocultamos la leyenda para reducir ruido visual
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(33, 37, 41, 0.9)',
+                        padding: 12,
+                        titleFont: { size: 14, family: "'Segoe UI', sans-serif" },
+                        bodyFont: { size: 13, family: "'Segoe UI', sans-serif" },
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.raw + '%'; // Añade el % al tooltip
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    r: {
+                        angleLines: {
+                            color: 'rgba(0, 0, 0, 0.08)' // Líneas de los ejes más sutiles
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.08)',
+                            circular: true // Malla circular, mucho más estética que la poligonal
+                        },
+                        pointLabels: {
+                            font: {
+                                size: 13,
+                                family: "'Segoe UI', sans-serif",
+                                weight: '500'
+                            },
+                            color: '#495057' // Gris oscuro profesional
+                        },
+                        ticks: {
+                            display: false, // Oculta los números de la malla para mayor limpieza
+                            min: 0,
+                            max: 100,
+                            stepSize: 25
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

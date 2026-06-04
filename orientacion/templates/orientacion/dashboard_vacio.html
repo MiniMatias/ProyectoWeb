@@ -1,0 +1,16 @@
+{% extends 'orientacion/base.html' %}
+
+{% block content %}
+<div class="container mt-5 text-center">
+    <div class="p-5 mb-4 bg-light rounded-3 shadow-sm">
+        <div class="container-fluid py-5">
+            <h1 class="display-5 fw-bold">Hola, {{ estudiante.nombre_completo }}</h1>
+            <p class="col-md-8 mx-auto fs-4 mt-3">
+                Tu perfil está activo, pero aún no tenemos datos para generar tu análisis de afinidad profesional. 
+                Rinde la prueba para desbloquear tus métricas.
+            </p>
+            <a href="{% url 'realizar_test' %}" class="btn btn-primary btn-lg mt-3">Realizar Test de Orientación</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -22,5 +22,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.registro_estudiante, name='registro'),
     path('ajax/especialidades/', views.cargar_especialidades, name='ajax_especialidades'),
-    path('test/', views.realizar_test, name='realizar_test'), # <-- Nueva ruta
+    path('test/', views.realizar_test, name='realizar_test'), 
+    path('acceso/', views.acceso_dashboard, name='acceso_dashboard'),
+    path('dashboard/', views.dashboard, name='dashboard'),
 ]
