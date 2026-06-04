@@ -71,29 +71,6 @@ def realizar_test(request):
                     pregunta=pregunta,
                     defaults={'puntaje': int(puntaje)}
                 )
-        
-def realizar_test(request):
-    # Validamos que nadie entre a esta URL escribiéndola a mano si no se ha registrado
-    estudiante_id = request.session.get('estudiante_id')
-    if not estudiante_id:
-        return redirect('registro') # Lo devolvemos al inicio
-    
-    estudiante = Estudiante.objects.get(id=estudiante_id)
-    preguntas = Pregunta.objects.all().order_by('habilidad__nombre')
-
-    if request.method == 'POST':
-        # Los datos llegan al sistema. Iteramos sobre las preguntas para atrapar respuestas.
-        for pregunta in preguntas:
-            # El HTML enviará inputs con el nombre "pregunta_1", "pregunta_2", etc.
-            puntaje = request.POST.get(f'pregunta_{pregunta.id}')
-            
-            if puntaje and puntaje.isdigit():
-                # Guardamos la respuesta en la base de datos
-                RespuestaHabilidad.objects.update_or_create(
-                    estudiante=estudiante,
-                    pregunta=pregunta,
-                    defaults={'puntaje': int(puntaje)}
-                )
                 
         # 1. Extracción Optimizada
         respuestas = RespuestaHabilidad.objects.filter(
