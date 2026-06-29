@@ -24,11 +24,11 @@ class PromedioPonderadoStrategy(MotorInferenciaStrategy):
             
             pesos = esp.get('pesos', [])
             if not pesos:
-                raise CalculoInferenciaError(f"La especialidad '{esp.get('nombre', 'Desconocida')}' no tiene pesos configurados.")
+                continue
                 
             for ph in pesos:
                 if 'habilidad_id' not in ph:
-                    raise CalculoInferenciaError("Estructura de peso inválida: falta 'habilidad_id'.")
+                    continue
                     
                 promedio = float(promedios_alumno.get(ph['habilidad_id'], 0.0))
                 peso = float(ph.get('peso', 0.0))
@@ -36,7 +36,7 @@ class PromedioPonderadoStrategy(MotorInferenciaStrategy):
                 pesos_totales += peso
             
             if pesos_totales <= 0:
-                raise CalculoInferenciaError(f"Suma de pesos nula o negativa en la especialidad '{esp.get('nombre', 'Desconocida')}'. División por cero evitada.")
+                continue
                 
             afinidad_final = puntaje_afinidad / pesos_totales
             
