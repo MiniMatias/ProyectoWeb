@@ -2,51 +2,36 @@ import json
 from django.shortcuts import render, redirect 
 from django.http import JsonResponse
 from django.core.exceptions import ValidationError
-from .models import AreaEspecialidad, Especialidad, Estudiante, Pregunta, RespuestaHabilidad
-
-# SISTEMA DE REGISTRO ORIGINAL
+from .models import Especialidad, Estudiante, Pregunta, AreaEspecialidad
+from .services import RegistroService, TestVocacionalService, EstudianteDashboardService
+from .inference_engine import PromedioPonderadoStrategy
 
 def registro_estudiante(request):
     areas = AreaEspecialidad.objects.all().order_by('nombre')
     error_msg = None
 
     if request.method == 'POST':
-        cedula_ingresada = request.POST.get('cedula')
-        nombre_ingresado = request.POST.get('nombre_completo')
-        area_id = request.POST.get('area')
-        especialidad_id = request.POST.get('especialidad')
-
         try:
-            area_obj = AreaEspecialidad.objects.get(id=area_id)
-            especialidad_obj = Especialidad.objects.get(id=especialidad_id)
-
-            nuevo_estudiante = Estudiante(
-                cedula=cedula_ingresada,
-                nombre_completo=nombre_ingresado,
-                area_interes=area_obj,
-                especialidad_especifica=especialidad_obj
+            estudiante = RegistroService.registrar_estudiante(
+                cedula=request.POST.get('cedula', ''),
+                nombre_completo=request.POST.get('nombre_completo', ''),
+                area_id=request.POST.get('area', ''),
+                especialidad_id=request.POST.get('especialidad', '')
             )
-            nuevo_estudiante.save()
-            
-            request.session['estudiante_id'] = nuevo_estudiante.id
+            request.session['estudiante_id'] = estudiante.id
             return redirect('realizar_test') 
-
         except ValidationError as e:
             error_msg = e.messages[0] if hasattr(e, 'messages') else str(e)
-        except Exception as e:
-            error_msg = "Ocurrió un error al procesar la solicitud."
+        except Exception:
+            error_msg = "Ocurrió un error inesperado al procesar la solicitud."
 
-    return render(request, 'orientacion/registro.html', {
-        'areas': areas,
-        'error_msg': error_msg
-    })
+    return render(request, 'orientacion/registro.html', {'areas': areas, 'error_msg': error_msg})
 
 def cargar_especialidades(request):
     area_id = request.GET.get('area_id')
-    if area_id and area_id.isdigit():
+    if area_id and str(area_id).isdigit():
         especialidades = Especialidad.objects.filter(area_id=area_id).order_by('nombre')
-        data = list(especialidades.values('id', 'nombre'))
-        return JsonResponse(data, safe=False)
+        return JsonResponse(list(especialidades.values('id', 'nombre')), safe=False)
     return JsonResponse({'error': 'ID inválido'}, status=400)
 
 def realizar_test(request):
@@ -54,108 +39,58 @@ def realizar_test(request):
     if not estudiante_id:
         return redirect('registro') 
     
-    estudiante = Estudiante.objects.get(id=estudiante_id)
-    preguntas = Pregunta.objects.all().order_by('habilidad__nombre')
+    try:
+        estudiante = Estudiante.objects.get(id=estudiante_id)
+    except Estudiante.DoesNotExist:
+        return redirect('registro')
 
     if request.method == 'POST':
-        for pregunta in preguntas:
-            puntaje = request.POST.get(f'pregunta_{pregunta.id}')
-            if puntaje and puntaje.isdigit():
-                RespuestaHabilidad.objects.update_or_create(
-                    estudiante=estudiante,
-                    pregunta=pregunta,
-                    defaults={'puntaje': int(puntaje)}
-                )
-                
+        # Extracción segura: Filtramos basura de la web y construimos un diccionario tipado
+        respuestas_puras = {}
+        for key, value in request.POST.items():
+            if key.startswith('pregunta_') and value.isdigit():
+                try:
+                    pregunta_id = int(key.split('_')[1])
+                    respuestas_puras[pregunta_id] = int(value)
+                except ValueError:
+                    continue
+                    
+        TestVocacionalService.guardar_respuestas(estudiante, respuestas_puras)
         return redirect('dashboard')
 
-    return render(request, 'orientacion/test.html', {
-        'estudiante': estudiante,
-        'preguntas': preguntas
-    })
-
-# 2. (DASHBOARD)
+    preguntas = Pregunta.objects.select_related('habilidad').order_by('habilidad__nombre')
+    return render(request, 'orientacion/test.html', {'estudiante': estudiante, 'preguntas': preguntas})
 
 def acceso_dashboard(request):
-    """Actúa como un login falso basado en la cédula."""
     if request.method == 'POST':
-        cedula_ingresada = request.POST.get('cedula')
-        estudiante = Estudiante.objects.filter(cedula=cedula_ingresada).first()
-        
+        estudiante = Estudiante.objects.filter(cedula=request.POST.get('cedula')).first()
         if estudiante:
             request.session['estudiante_id'] = estudiante.id
             return redirect('dashboard')
-        else:
-            return render(request, 'orientacion/acceso.html', {'error': 'Cédula no encontrada. Regístrate primero.'})
+        return render(request, 'orientacion/acceso.html', {'error': 'Cédula no encontrada.'})
             
     return render(request, 'orientacion/acceso.html')
 
 def dashboard(request):
-    """El panel principal del estudiante con sus gráficos."""
     estudiante_id = request.session.get('estudiante_id')
     if not estudiante_id:
         return redirect('acceso_dashboard')
         
-    estudiante = Estudiante.objects.get(id=estudiante_id)
-    respuestas = RespuestaHabilidad.objects.filter(estudiante=estudiante).select_related('pregunta__habilidad')
+    try:
+        estudiante = Estudiante.objects.select_related('area_interes', 'especialidad_especifica').get(id=estudiante_id)
+    except Estudiante.DoesNotExist:
+        return redirect('acceso_dashboard')
+        
+    servicio = EstudianteDashboardService(motor_inferencia=PromedioPonderadoStrategy())
+    resultado = servicio.procesar_dashboard(estudiante)
     
-    if not respuestas.exists():
+    if resultado.get('vacio'):
         return render(request, 'orientacion/dashboard_vacio.html', {'estudiante': estudiante})
         
-    # Procesamiento matemático para el Gráfico Radial de Chart.js
-    habilidades_data = {}
-    promedios_estudiante = {}
-    
-    for r in respuestas:
-        # Para el gráfico radial
-        hab_nombre = r.pregunta.habilidad.nombre
-        if hab_nombre not in habilidades_data:
-            habilidades_data[hab_nombre] = {'suma': 0, 'conteo': 0}
-        
-        porcentaje = (r.puntaje - 1) * 25
-        habilidades_data[hab_nombre]['suma'] += porcentaje
-        habilidades_data[hab_nombre]['conteo'] += 1
-
-        # Para el motor de inferencia (Top 3) usando IDs
-        hab_id = r.pregunta.habilidad.id
-        if hab_id not in promedios_estudiante:
-            promedios_estudiante[hab_id] = {'suma': 0, 'conteo': 0}
-        promedios_estudiante[hab_id]['suma'] += porcentaje
-        promedios_estudiante[hab_id]['conteo'] += 1
-        
-    labels = list(habilidades_data.keys())
-    data_points = [round(data['suma'] / data['conteo'], 1) for data in habilidades_data.values()]
-    
-    # MOTOR DE INFERENCIA TOP 3 
-    promedios_finales = {h_id: vals['suma']/vals['conteo'] for h_id, vals in promedios_estudiante.items()}
-
-    todas_especialidades = Especialidad.objects.prefetch_related('pesos_habilidades')
-    ranking_especialidades = []
-
-    for esp in todas_especialidades:
-        puntaje_afinidad = 0
-        pesos_totales = 0
-        for ph in esp.pesos_habilidades.all():
-            promedio_alumno = promedios_finales.get(ph.habilidad.id, 0)
-            puntaje_afinidad += promedio_alumno * ph.peso
-            pesos_totales += ph.peso
-        
-        afinidad_final = (puntaje_afinidad / pesos_totales) if pesos_totales > 0 else 0
-        
-        ranking_especialidades.append({
-            'especialidad': esp.nombre,
-            'area': esp.area.nombre,
-            'afinidad': round(afinidad_final, 1)
-        })
-
-    top_3_recomendaciones = sorted(ranking_especialidades, key=lambda x: x['afinidad'], reverse=True)[:3]
-    
-    contexto = {
+    return render(request, 'orientacion/dashboard.html', {
         'estudiante': estudiante,
-        'respuestas': respuestas,
-        'chart_labels': json.dumps(labels), 
-        'chart_data': json.dumps(data_points),
-        'top_3': top_3_recomendaciones
-    }
-    
-    return render(request, 'orientacion/dashboard.html', contexto)
+        'chart_labels': json.dumps(resultado.get('labels', [])), 
+        'chart_data': json.dumps(resultado.get('data_points', [])),
+        'top_3': resultado.get('top_3', []),
+        'error_inferencia': resultado.get('error_inferencia', False)
+    })
